@@ -1,43 +1,80 @@
-import './App.css'
-import {useEffect, useState} from "react";
-import { ethers } from "hardhat";
+import { useState, useEffect } from 'react';
+// import abi from "./contractJson/chai.json";
+import { ethers, Contract, Signer, providers } from "ethers";
+// import Memos from './components/Memos';
+// import Buy from './components/Buy';
+import chai from "./chai.png";
+import './App.css';
 
+interface StateType {
+    provider: providers.Web3Provider | null;
+    signer: Signer | null;
+    contract: Contract | null;
+}
 
 function App() {
-    const [state, setState] = useState({
+    const [state, setState] = useState<StateType>({
         provider: null,
         signer: null,
-        contract: null,
-    })
+        contract: null
+    });
+
+    const [account, setAccount] = useState<string>('Not connected');
 
     useEffect(() => {
         const template = async () => {
-            const contractAddress = "";
-            const contractABI = "";
-            //MetaMask part
-            //1. In order to do transactions on goerli testnet
-            //2. MetaMask consist of infura api which actually help in connecting to the blockchain
-            const { ethereum } = window;
+            const contractAddress = "0xa64e3144835aF8781c750ceC432784a68d883266";
+            const contractABI = abi.abi;
 
-            const account = await ethereum.request({method: 'eth_requestAccounts'});
+            try {
+                const { ethereum } = window as any; // `window` needs to be typed as `any` to access `ethereum`
 
-            const provider = new ethers.providers.Web3Provider(ethereum);
-            const signer = provider.getSigner();
+                if (!ethereum) {
+                    console.log("Metamask not found");
+                    return;
+                }
 
-            const contract = new ethers.Contract(
-                contractAddress,
-                contractABI,
-                signer
-            )
-        }
+                const accounts: string[] = await ethereum.request({
+                    method: "eth_requestAccounts"
+                });
+
+                window.ethereum.on("accountsChanged", () => {
+                    window.location.reload();
+                });
+
+                setAccount(accounts[0]);
+
+                const provider = new ethers.providers.Web3Provider(ethereum); // read the Blockchain
+                const signer = provider.getSigner(); // write to the blockchain
+
+                const contract = new ethers.Contract(
+                    contractAddress,
+                    contractABI,
+                    signer
+                );
+
+                console.log(contract);
+
+                setState({ provider, signer, contract });
+            } catch (error) {
+                console.log(error);
+            }
+        };
+
         template();
     }, []);
 
     return (
-        <>
+        <div>
+            <img src={chai} className="img-fluid" alt=".." width="100%" />
+            <p style={{ marginTop: "10px", marginLeft: "5px" }}>
+                <small>Connected Account - {account}</small>
+            </p>
 
-        </>
-    )
+            <Buy state={state} />
+            <Memos state={state} />
+        </div>
+    );
 }
 
-export default App
+export default App;
